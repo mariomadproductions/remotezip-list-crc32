@@ -1,0 +1,16 @@
+[project]
+name = "zip-crc32-http"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "remotezip>=0.12.3",
+]
+
+[project.scripts]
+zip-crc32-http = "zip_crc32_http:main"
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"
