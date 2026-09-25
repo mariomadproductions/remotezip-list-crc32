@@ -1,15 +1,19 @@
 [project]
-name = "zip-crc32-http"
+name = "remotezip-list-crc32"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "aiohttp>=3.14.3",
+    "fsspec>=2026.9.0",
+    "py7zr>=1.1.3",
     "remotezip>=0.12.3",
+    "requests>=2.33.1",
 ]
 
 [project.scripts]
-zip-crc32-http = "zip_crc32_http:main"
+remotezip-list-crc32 = "remotezip_list_crc32:main"
 
 [build-system]
 requires = ["uv_build>=0.11.8,<0.12.0"]
