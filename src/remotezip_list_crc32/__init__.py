@@ -1,16 +1,19 @@
 import argparse
 import json
+import requests
 
+#For ZIP
 import remotezip
 
-import fsspec
+#for 7-Zip
+import smart_open
 import py7zr
 
 DEFAULT_BUFFER_SIZE = 64 * 1024  # 64 KiB
 ARCHIVE_TYPES = ['zip', '7z']
 DEFAULT_ARCHIVE_TYPE = 'zip'
 
-def _yield_file_dicts_from_obj(obj, archive_type):
+def _yield_file_dicts_from_archive_obj(obj, archive_type):
     mappings = {'zip': {'name':  'filename',
                         'size':  'file_size',
                         'crc32': 'CRC'},
@@ -28,27 +31,25 @@ def _yield_file_dicts_from_obj(obj, archive_type):
             file_dict[out_name] = item
         yield file_dict
 
-def _yield_file_dicts_from_zip(url, buffer_size):
-    with remotezip.RemoteZip(url, initial_buffer_size=buffer_size) as remote_zip_obj:
+def _yield_file_dicts_from_zip(url, buffer_size, session):
+    with remotezip.RemoteZip(url, initial_buffer_size=buffer_size, session=session) as remote_zip_obj:
         file_info_obj = remote_zip_obj.infolist()
-        yield from _yield_file_dicts_from_obj(file_info_obj, 'zip')
+        yield from _yield_file_dicts_from_archive_obj(file_info_obj, 'zip')
 
-def _yield_file_dicts_from_7z(url, buffer_size):
-    if buffer_size is None:
-        fs = fsspec.filesystem('http')
-    else:
-        fs = fsspec.filesystem('http', block_size=buffer_size)
-
-    with fs.open(url, 'rb') as f:
+def _yield_file_dicts_from_7z(url, buffer_size, session):
+    with smart_open.open(url, 'rb', transport_params={'session': session, 'buffer_size': buffer_size}) as f:
         with py7zr.SevenZipFile(f, mode='r') as archive:
             file_info_obj = archive.list()
-            yield from _yield_file_dicts_from_obj(file_info_obj, '7z')
+            yield from _yield_file_dicts_from_archive_obj(file_info_obj, '7z')
 
-def yield_file_dicts(url, archive_type=DEFAULT_ARCHIVE_TYPE, buffer_size=DEFAULT_BUFFER_SIZE):
+def yield_file_dicts(url, archive_type=DEFAULT_ARCHIVE_TYPE, buffer_size=DEFAULT_BUFFER_SIZE, session=None):
+    if session is None:
+        session = requests.Session()
+    
     if archive_type == 'zip':
-        yield from _yield_file_dicts_from_zip(url, buffer_size)
+        yield from _yield_file_dicts_from_zip(url, buffer_size, session)
     elif archive_type == '7z':
-        yield from _yield_file_dicts_from_7z(url, buffer_size)
+        yield from _yield_file_dicts_from_7z(url, buffer_size, session)
     else:
         raise ValueError('Invalid archive type')
 
